@@ -18,7 +18,7 @@ class Chama(models.Model):
 
 class Cashpool(models.Model):
     chama = models.OneToOneField(Chama, on_delete=models.CASCADE, related_name="cash_pool")
-    balance = models.DecimalFields(max_digits=12, decimal_places=2, default=0.00)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
     def update_balance(self):
         total_contributions = self.chama.contributions.filter(is_confrimed=True).aggregate(Sum('amount'))['amount__sum'] or 0
