@@ -20,7 +20,7 @@ class RegisterChamaView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(chama_admin=self.request.user)
 
-class DetailChamaview(generics.ListAPIView):
+class DetailChamaView(generics.ListAPIView):
     queryset = Chama.objects.all()
     permission_classes  = [IsAuthenticated]
     serializer_class = ChamaSerializer
