@@ -1,6 +1,6 @@
 from .models import Chama, CashPool
 from rest_framework import serializers
-from poatan.contributions.models import Contribution
+from contributions.models import Contribution
 
 
 class ChamaSerializer(serializers.ModelSerializer):

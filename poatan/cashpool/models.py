@@ -16,7 +16,7 @@ class Chama(models.Model):
     def __str__(self):
         return self.name
 
-class Cashpool(models.Model):
+class CashPool(models.Model):
     chama = models.OneToOneField(Chama, on_delete=models.CASCADE, related_name="cash_pool")
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
