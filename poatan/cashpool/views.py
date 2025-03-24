@@ -2,11 +2,12 @@ from django.shortcuts import render
 from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .serializers import ( RegisterChamaSerializer,
-                           ChamaSerializer,
-                           JoinChamaSerializer,
-                           ChamaMemberSerializer,
-                           CashPoolSerializer 
+from .serializers import ( 
+                        RegisterChamaSerializer,
+                        ChamaSerializer,
+                        JoinChamaSerializer,
+                        ChamaMemberSerializer,
+                        CashPoolSerializer 
                            )
 from .models import Chama, CashPool
 from rest_framework import generics
@@ -15,7 +16,7 @@ from rest_framework import generics
 class RegisterChamaView(generics.CreateAPIView):
     queryset = Chama.objects.all()
     permission_classes = [IsAuthenticated]
-    serializer_classes = RegisterChamaSerializer
+    serializer_class = RegisterChamaSerializer
 
     def perform_create(self, serializer):
         serializer.save(chama_admin=self.request.user)

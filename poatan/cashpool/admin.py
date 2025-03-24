@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import Chama, CashPool
 
-# Register your models here.
+
+admin.site.register(Chama)
+admin.site.register(CashPool)

@@ -17,13 +17,9 @@ class CashPoolSerializer(serializers.ModelSerializer):
 class RegisterChamaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chama
-        fields = ('id', 'chama_name', 'description', 'chama_admin', 'cash_pool', 'created_at', 'updated_at')
+        fields = ('chama_name', 'description', 'chama_admin')
 
-    def create(self, validated_data):
-        chama = Chama.objects.create_chama(**validated_data)
-        return chama
     
-
 class JoinChamaSerializer(serializers.Serializer):
     chama_id = serializers.IntegerField()
 

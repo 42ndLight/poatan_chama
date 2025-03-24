@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 
 User = get_user_model()
 
@@ -11,7 +14,6 @@ class Chama(models.Model):
     chama_admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="administered_chamas")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
 
     def __str__(self):
         return self.name
@@ -26,3 +28,9 @@ class CashPool(models.Model):
         self.balance = total_contributions - total_payouts
         self.save()
 
+# Automatically creates a CashPool when Chama is created
+
+@receiver(post_save, sender=Chama)
+def create_cashpool(sender, instance, created, **kwargs):
+    if created:
+        CashPool.objects.create(chama=instance)
