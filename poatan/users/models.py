@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, Group, Permission
 
+
 # Create your models here.
 class User(AbstractUser):
     ROLE_CHOICES = [
@@ -8,7 +9,6 @@ class User(AbstractUser):
         ('treasurer', 'Treasurer'),
         ('Chairman', 'Chairman'),
     ]
-
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='contributor')
     phone_no = models.CharField(max_length=20, blank=True, null=True)
     groups = models.ManyToManyField(

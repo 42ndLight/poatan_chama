@@ -10,7 +10,7 @@ from .serializers import (
                         CashPoolSerializer 
                            )
 from .models import Chama, CashPool
-from rest_framework import generics
+from rest_framework import generics, serializers
 
 # Create your views here.
 class RegisterChamaView(generics.CreateAPIView):
@@ -31,19 +31,38 @@ class JoinChamaView(views.APIView):
 
     def post(self, request):
         serializer = JoinChamaSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Successfully joined Chama!!"}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_404_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            result = serializer.save()
+            return Response({
+                "message": f"Successfully joined {result['chama'].name}",
+                "chama_id": result['chama'].id,
+                "members_count": result['chama'].members.count()
+            }, status=status.HTTP_200_OK)
+        except serializers.ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ChamaMembersView(generics.RetrieveAPIView):
     queryset = Chama.objects.all()
     serializer_class = ChamaMemberSerializer
     permission_classes = [IsAuthenticated]
 
+    
 
 class CashPoolView(generics.RetrieveAPIView):
-    queryset = CashPool.objects.all()
     serializer_class = CashPoolSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        # Get the chama_id from URL or user's current chama
+        chama_id = self.kwargs.get('chama_id') or self.request.user.chama.id
+        try:
+            return CashPool.objects.get(chama_id=chama_id)
+        except CashPool.DoesNotExist:
+            # Auto-create if missing (redundant safety if signals work properly)
+            return CashPool.objects.create(chama_id=chama_id)
+
+
 
