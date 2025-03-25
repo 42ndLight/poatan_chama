@@ -2,10 +2,14 @@ from rest_framework import serializers
 from .models import Contribution
 
 class ContributionSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()
+    chama = serializers.StringRelatedField()
+    confirmed_by = serializers.StringRelatedField()
+    
     class Meta:
-        model = Contribution 
-        fields = ["id", "user", "amount", "is_confirmed", "created_at"]
-        read_only_fields = ["id", "user", "is_confirmed", "created_at"]
+        model = Contribution
+        fields = '__all__'
+        read_only_fields = ('status', 'created_at', 'updated_at')
 
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
