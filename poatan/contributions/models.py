@@ -12,16 +12,29 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 class Contribution(models.Model):
+    CONTRIBUTION_TYPES = (
+        ('regular', 'Regular'),
+        ('special', 'Special'),
+        ('fine', 'Fine'),
+    )
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('rejected', 'Rejected'),
+    ]
+
+    contribution_type = models.CharField(max_length=20, choices=CONTRIBUTION_TYPES)
     user = models.ForeignKey(User, on_delete=models.CASCADE,related_name = "contributions")
     chama = models.ForeignKey(Chama, on_delete=models.CASCADE, related_name="contributions", default=1)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     is_confirmed = models.BooleanField(default=False)
-
+    transaction_id = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     def save(self, *args, **kwargs):
-        """Ensure cash pool updates after confirming contribution."""
+        # Ensure cash pool updates after confirming contribution
         with transaction.atomic():  # Ensure atomicity
-            super().save(*args, **kwargs)  # Save the contribution
+            super().save(*args, **kwargs)
             if self.is_confirmed:
                 try:
                     # Update the cash pool balance
@@ -35,6 +48,8 @@ class Contribution(models.Model):
     
 
     def __str__(self):
-        return f"{self.user.username} - {self.amount}"
+        return f"{self.user.username} - {self.amount} - {self.status}"
+    
+
     
 

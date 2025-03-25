@@ -8,7 +8,7 @@ class ChamaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chama
         fields = ('id', 'name', 'description', 'chama_admin', 'cash_pool', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'chama_admin', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'chama_admin', 'created_at')
 
 class CashPoolSerializer(serializers.ModelSerializer):
     chama_name = serializers.CharField(source='chama.name', read_only=True)
@@ -16,7 +16,7 @@ class CashPoolSerializer(serializers.ModelSerializer):
     class Meta:
         model = CashPool
         fields = ('id', 'chama', 'chama_name', 'balance', 'updated_at')
-        read_only_fields = ('id', 'chama_name', 'updated_at')
+        read_only_fields = ('id', 'chama_name')
 
 class RegisterChamaSerializer(serializers.ModelSerializer):
     class Meta:
