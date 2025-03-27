@@ -10,7 +10,10 @@ class ContributionListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Contribution.objects.filter(user=self.request.user).select_related('chama')
+        queryset = Contribution.objects.all()
+        if self.kwargs.get('chama_id'):
+            queryset = queryset.filter(chama_id=self.kwargs['chama_id'])
+        return queryset.select_related('chama')
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
