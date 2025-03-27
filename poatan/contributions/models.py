@@ -23,7 +23,7 @@ class Contribution(models.Model):
         ('rejected', 'Rejected'),
     ]
 
-    contribution_type = models.CharField(max_length=20, choices=CONTRIBUTION_TYPES)
+    contribution_type = models.CharField(max_length=20, choices=CONTRIBUTION_TYPES, default='regular')
     user = models.ForeignKey(User, on_delete=models.CASCADE,related_name = "contributions")
     chama = models.ForeignKey(Chama, on_delete=models.CASCADE, related_name="contributions", default=1)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
