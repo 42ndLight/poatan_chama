@@ -1,13 +1,19 @@
 from django.shortcuts import render
-from .serializers import PayoutSerializer, ProcessPayoutSerializer
+from .serializers import PayoutSerializer, ProcessPayoutSerializer, PayoutCycleSerializer
 from rest_framework import generics, permissions, status
-from .models import Payout
+from rest_framework.views import APIView
+from .models import Payout, PayoutCycle
 from rest_framework.exceptions import PermissionDenied
 from cashpool.models import Chama
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
 # Create your views here.
+class PayoutCycleView(generics.ListCreateAPIView):
+    queryset = PayoutCycle.objects.all()
+    serializer_class = PayoutCycleSerializer
+    permission_classes = [permissions.IsAdminUser]
+
 class PayoutView(generics.ListCreateAPIView):
     serializer_class = PayoutSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -99,3 +105,23 @@ class ProcessPayoutView(generics.UpdateAPIView):
                 {"detail": "Payout rejected"},
                 status=status.HTTP_200_OK
             )
+        
+class TriggerPayoutView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+    
+    def post(self, request, *args, **kwargs):  
+        cycle_id = self.kwargs.get('pk')
+        cycle = get_object_or_404(PayoutCycle, pk=cycle_id)
+        
+        if not cycle.chama.chama_admin == request.user:
+            return Response(
+                {"error": "Only chama admins can trigger payouts"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        success_count = cycle.trigger_payouts(initiated_by=request.user)
+        return Response(
+            {"success": success_count},
+            status=status.HTTP_201_CREATED
+        )
+

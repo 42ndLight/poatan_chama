@@ -12,7 +12,12 @@ User = get_user_model()
 class Chama(models.Model):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)
-    chama_admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="administered_chamas")
+    chama_admin = models.ForeignKey(
+        User, 
+        on_delete=models.PROTECT,
+        related_name='administered_chamas',
+        verbose_name="Chairman"
+        )
     members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='chamas', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

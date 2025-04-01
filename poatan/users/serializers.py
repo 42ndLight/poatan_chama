@@ -38,7 +38,7 @@ class LoginSerializer(serializers.Serializer):
         return{
             'refresh': str(refresh),
             'access': str(refresh.access_token),
-            'user' : UserSerialzer(user).data
+            'user' : UserSerializer(user).data
             }
     
 class UpdateSerializer(serializers.ModelSerializer):

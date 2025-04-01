@@ -1,5 +1,11 @@
 from rest_framework import serializers
-from .models import Payout
+from .models import Payout, PayoutCycle
+
+class PayoutCycleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PayoutCycle
+        fields = '__all__'
+        read_only_fields = ('end_date',)
 
 class PayoutSerializer(serializers.ModelSerializer):
     recipient_name = serializers.CharField(source='recipient.username', read_only=True)

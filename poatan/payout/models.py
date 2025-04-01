@@ -1,27 +1,65 @@
+from datetime import timedelta
 from django.db import models
 from django.contrib.auth import get_user_model
 from cashpool.models import CashPool
 from django.db.models import Sum
 from django.utils import timezone
 from transactions.services import LedgerService
+import logging
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
 # Create your models here.
 class PayoutCycle(models.Model):
+    PERIOD_CHOICES = [
+        ('fortnight', 'Fortnightly (14 days)'),
+        ('month', 'Monthly (30 days)')
+    ]
+    
     name = models.CharField(max_length=100)
+    period = models.CharField(max_length=10, choices=PERIOD_CHOICES, default='month')
     start_date = models.DateField()
     end_date = models.DateField()
     is_active = models.BooleanField(default=True)
     chama = models.ForeignKey('cashpool.Chama', on_delete=models.CASCADE)
 
-    def __str__(self):
-        return f"{self.name} ({self.start_date} to {self.end_date})"
+    def can_trigger(self, user):
+        return self.chama.admin == user
 
-    @property
-    def is_current(self):
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            if self.period == 'fortnight':
+                self.end_date = self.start_date + timedelta(days=14)
+            else:
+                self.end_date = self.start_date + timedelta(days=30)
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def check_and_create_payouts(cls):
         today = timezone.now().date()
-        return self.start_date <= today <= self.end_date
+        for cycle in cls.objects.filter(end_date=today, is_active=True):
+            cls.create_payout_for_cycle(cycle)
+
+    def trigger_payouts(self, initiated_by=None):
+        success = 0
+        for member in self.chama.members.all():
+            try:
+                amount = self.calculate_for_user(member)
+                if amount > 0:
+                    Payout.objects.create(
+                        cashpool=self.chama.cashpool,
+                        recipient=member,
+                        cycle=self,
+                        amount=amount,
+                        initiated_by=initiated_by
+                    )
+                    success += 1
+            except Exception as e:
+                logger.error(f"Payout failed for {member}: {str(e)}")
+        return success
+
 
 
 class Payout(models.Model):
