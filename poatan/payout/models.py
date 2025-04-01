@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from cashpool.models import CashPool
 from django.db.models import Sum
 from django.utils import timezone
+from transactions.services import LedgerService
 
 User = get_user_model()
 
@@ -91,3 +92,4 @@ class Payout(models.Model):
         self.status='completed'
         self.completed_at = timezone.now()
         self.save()
+        LedgerService.record_payout(self)

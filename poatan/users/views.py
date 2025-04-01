@@ -10,7 +10,7 @@ from .models import User
 from .serializers import (
     RegisterSerializer,
     LoginSerializer,
-    UserSerialzer,
+    UserSerializer,
     UpdateSerializer,
     ChangePasswordSerializer,
     UserDeleteSerializer
@@ -47,7 +47,7 @@ class LogoutView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 class UserProfileView(generics.RetrieveAPIView):
-    serializer_class = UserSerialzer
+    serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):

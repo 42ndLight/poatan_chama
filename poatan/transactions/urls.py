@@ -1,6 +1,6 @@
 from django.urls import path
-from . import views
+from .views import LedgerListView
 
 urlpatterns = [
-
-    ]
+    path('', LedgerListView.as_view(), name='ledger-list'),
+]

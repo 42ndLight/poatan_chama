@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import F
 from django.core.exceptions import ValidationError
 import logging
-
+from transactions.services import LedgerService
 
 
 logger = logging.getLogger(__name__)
@@ -31,19 +31,39 @@ class Contribution(models.Model):
     is_confirmed = models.BooleanField(default=False)
     transaction_id = models.CharField(max_length=100, unique=True, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+
     def save(self, *args, **kwargs):
         # Ensure cash pool updates after confirming contribution
-        with transaction.atomic():  # Ensure atomicity
+        with transaction.atomic(): 
+            is_new = self._state.adding
+            was_confirmed = not is_new and self.is_confirmed
+            
             super().save(*args, **kwargs)
             if self.is_confirmed:
                 try:
-                    # Update the cash pool balance
-                    self.chama.cash_pool.balance = F('balance') + self.amount
-                    self.chama.cash_pool.save()
+                    cash_pool = self.chama.cash_pool
+                    cash_pool.balance = F('balance') + self.amount
+                    cash_pool.save(update_fields=['balance'])
+                    cash_pool.refresh_from_db()
+
+                    if is_new and self.status == 'confirmed':
+                        LedgerService.record_contribution(self)
+            
                 except Exception as e:
-                    # Log the error and re-raise
-                    logger.error(f"Failed to update cash pool for Chama '{self.chama.name}'. Error: {str(e)}")
-                    raise ValidationError(f"Failed to update cash pool: {str(e)}")
+                    logger.error(
+                        f"CashPool update failed for {self}. "
+                        f"Chama: {self.chama_id}, "
+                        f"Amount: {self.amount}. "
+                        f"Error: {str(e)}",
+                        exc_info=True
+                )
+                    raise ValidationError({
+                        'detail': 'Failed to process contribution',
+                        'error': str(e)
+                })
+                    
+            
 
     
 

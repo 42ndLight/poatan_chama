@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Contribution
 
+
 class ContributionSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
     chama = serializers.StringRelatedField()
