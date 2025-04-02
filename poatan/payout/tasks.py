@@ -1,6 +1,7 @@
+from logging import Logger
 from celery import shared_task
 from django.utils import timezone
-from .models import PayoutCycle
+from .models import PayoutCycle, Payout
 
 @shared_task
 def check_payout_cycles():
@@ -12,6 +13,10 @@ def check_payout_cycles():
     )
     
     for cycle in active_cycles:
-        Payout.create_payout_for_cycle(cycle)
-        cycle.is_active = False  # Deactivate after processing
-        cycle.save()
+        try:
+            Payout.create_payout_for_cycle(cycle)
+            cycle.is_active = False  
+            cycle.save()
+        except Exception as e:
+            Logger.error(f"Failed processing cycle {cycle.id}: {str(e)}")
+ 

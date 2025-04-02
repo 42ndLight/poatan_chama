@@ -17,6 +17,11 @@ class PayoutSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('status', 'transaction_ref', 'completed_at', 'failure_reason', 'initiated_by')
 
+    def validate(self, data):
+            if data['chama'].admin != self.context['request'].user:
+                raise serializers.ValidationError("Only the chama admin can create cycles")
+            return data
+
 class ProcessPayoutSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=['approve', 'rejected'])
     reason = serializers.CharField(required=False)

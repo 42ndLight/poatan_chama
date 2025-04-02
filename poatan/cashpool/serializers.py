@@ -2,13 +2,43 @@ from .models import Chama, CashPool
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
 from contributions.models import Contribution
+from django.contrib.auth import get_user_model
 
 
 class ChamaSerializer(serializers.ModelSerializer):
+    chama_admin = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.all(),
+        required=False
+    )
+
     class Meta:
         model = Chama
         fields = ('id', 'name', 'description', 'chama_admin', 'cash_pool', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'chama_admin', 'created_at')
+        read_only_fields = ('id', 'created_at')  
+
+    def validate(self, data):
+        request = self.context.get('request')
+        instance = self.instance
+        
+        if instance:
+            if instance.chama_admin != request.user:
+                raise serializers.ValidationError("Only the current admin can modify chama details")
+            
+            if 'chama_admin' in data and data['chama_admin'] not in instance.members.all():
+                raise serializers.ValidationError("New admin must be a current member")
+                
+        return data
+
+    def update(self, instance, validated_data):
+        new_admin = validated_data.pop('chama_admin', None)
+        
+        if new_admin and new_admin != instance.chama_admin:
+
+            if instance.chama_admin not in instance.members.all():
+                instance.members.add(instance.chama_admin)
+            instance.chama_admin = new_admin
+        
+        return super().update(instance, validated_data)
 
 class CashPoolSerializer(serializers.ModelSerializer):
     chama_name = serializers.CharField(source='chama.name', read_only=True)
@@ -39,7 +69,7 @@ class JoinChamaSerializer(serializers.Serializer):
         if chama.members.filter(id=user.id).exists():
             raise serializers.ValidationError("You are already a member of this chama")
             
-        # Add user to chama members (many-to-many relationship)
+        
         chama.members.add(user)
         return {
             "user": user,

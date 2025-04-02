@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from .models import Payout, PayoutCycle
 from rest_framework.exceptions import PermissionDenied
 from cashpool.models import Chama
+from .permissions import IsChamaAdmin
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
@@ -107,21 +108,29 @@ class ProcessPayoutView(generics.UpdateAPIView):
             )
         
 class TriggerPayoutView(APIView):
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsChamaAdmin]
     
-    def post(self, request, *args, **kwargs):  
-        cycle_id = self.kwargs.get('pk')
-        cycle = get_object_or_404(PayoutCycle, pk=cycle_id)
-        
-        if not cycle.chama.chama_admin == request.user:
+    def post(self, request, pk):
+        try:
+            cycle = PayoutCycle.objects.get(pk=pk)
+            print(f"Found cycle: {cycle.id}")  
+            
+            if not cycle.chama.admin == request.user:
+                return Response(
+                    {"error": "Only chama admins can trigger payouts"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            success_count = cycle.trigger_payouts(initiated_by=request.user)
             return Response(
-                {"error": "Only chama admins can trigger payouts"},
-                status=status.HTTP_403_FORBIDDEN
+                {"success": success_count},
+                status=status.HTTP_201_CREATED
             )
-        
-        success_count = cycle.trigger_payouts(initiated_by=request.user)
-        return Response(
-            {"success": success_count},
-            status=status.HTTP_201_CREATED
-        )
+            
+        except PayoutCycle.DoesNotExist:
+            print("Available cycles:", list(PayoutCycle.objects.all().values('id', 'chama')))  # Debug
+            return Response(
+                {"error": "Payout cycle not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
 

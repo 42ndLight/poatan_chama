@@ -14,7 +14,7 @@ class LedgerListView(generics.ListAPIView):
             return LedgerFilterSerializer
         return LedgerEntrySerializer
     
-    def get_querySset(self):
+    def get_queryset(self):
         queryset = LedgerEntry.objects.all()
         filter_serializer = LedgerFilterSerializer(data=self.request.query_params)
         filter_serializer.is_valid(raise_exception=True)
