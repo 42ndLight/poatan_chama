@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404
 class PayoutCycleView(generics.ListCreateAPIView):
     queryset = PayoutCycle.objects.all()
     serializer_class = PayoutCycleSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAdminUser, IsChamaAdmin]
 
 class PayoutView(generics.ListCreateAPIView):
     serializer_class = PayoutSerializer

@@ -21,6 +21,10 @@ class ChamaSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'description', 'chama_admin', 'cash_pool_balance', 'created_at', 'updated_at')
         read_only_fields = ('id', 'created_at', 'cash_pool_balance')  
 
+    def create(self, validated_data):
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)
+
     def validate(self, data):
         request = self.context.get('request')
         instance = self.instance

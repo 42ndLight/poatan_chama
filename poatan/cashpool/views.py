@@ -69,7 +69,7 @@ class JoinChamaView(views.APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ChamaMembersView(generics.RetrieveAPIView):
+class ChamaMembersView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Chama.objects.all()
     serializer_class = ChamaMemberSerializer
     permission_classes = [IsAuthenticated]
