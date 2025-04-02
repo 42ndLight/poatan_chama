@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from .serializers import PayoutSerializer, ProcessPayoutSerializer, PayoutCycleSerializer
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, serializers
 from rest_framework.views import APIView
 from .models import Payout, PayoutCycle
 from rest_framework.exceptions import PermissionDenied
@@ -39,17 +39,21 @@ class PayoutView(generics.ListCreateAPIView):
         return queryset
     
     def perform_create(self, serializer):        
-        chama = serializer.validated_data['cashpool'].chama
-
-        if not chama.admin == self.request.user:
-            raise PermissionDenied("Only Chama admins can initiate payouts")
-        
         serializer.save(initiated_by=self.request.user)
 
 class PayoutDetailView(generics.RetrieveAPIView):
     queryset = Payout.objects.all()
     serializer_class = PayoutSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Payout.objects.filter(cashpool__chama__members=self.request.user)
+        status_param= self.request.query_params.get('status')
+
+        if status_param:
+            queryset = queryset.filter(status=status_param.lower())
+
+        return queryset
 
     def get_object(self):
         payout = get_object_or_404(
@@ -68,10 +72,14 @@ class ProcessPayoutView(generics.UpdateAPIView):
     def get_object(self):
         payout = get_object_or_404(
             Payout.objects.filter(
-                cashpool__chama__admin=self.request.user
+                cashpool__chama__chama_admin=self.request.user
             ),
             pk=self.kwargs['pk']
         )
+        if payout.status != 'pending':
+            raise serializers.ValidationError(
+                {"detail": "Only pending payouts can be processed"}
+            )
         return payout
 
     
