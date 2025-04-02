@@ -1,7 +1,6 @@
 from .models import Chama, CashPool
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
-from contributions.models import Contribution
 from django.contrib.auth import get_user_model
 
 
@@ -10,11 +9,17 @@ class ChamaSerializer(serializers.ModelSerializer):
         queryset=get_user_model().objects.all(),
         required=False
     )
+    cash_pool_balance = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        source='cash_pool.balance',
+        read_only=True
+    )
 
     class Meta:
         model = Chama
-        fields = ('id', 'name', 'description', 'chama_admin', 'cash_pool', 'created_at', 'updated_at')
-        read_only_fields = ('id', 'created_at')  
+        fields = ('id', 'name', 'description', 'chama_admin', 'cash_pool_balance', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'created_at', 'cash_pool_balance')  
 
     def validate(self, data):
         request = self.context.get('request')

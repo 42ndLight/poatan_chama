@@ -37,7 +37,7 @@ class DetailChamaView(generics.RetrieveAPIView):
                 pk=self.kwargs['pk']
             ).select_related('chama_admin', 'cash_pool')
         )
-        return 
+        return chama
     
 class UpdateChamaView(generics.UpdateAPIView):
     queryset = Chama.objects.all()
