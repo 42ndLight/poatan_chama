@@ -1,9 +1,11 @@
 from datetime import timedelta
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.forms import ValidationError
 from cashpool.models import CashPool
 from django.db.models import Sum
 from django.utils import timezone
+from django.db import transaction
 from transactions.services import LedgerService
 import logging
 
@@ -118,13 +120,40 @@ class Payout(models.Model):
         cls.objects.bulk_create(payouts)
         return len(payouts)
     
-    def process(self, transaction_ref=None):
-        self.status='processing'
-        if transaction_ref:
-            self.transaction_ref = transaction_ref
-        self.save
+    def save(self, *args, **kwargs):
+        if not self.pk and self.status == 'completed':
+            raise ValidationError("New payouts cannot be created as completed")
+        super().save(*args, **kwargs)
 
-        self.status='completed'
-        self.completed_at = timezone.now()
-        self.save()
-        LedgerService.record_payout(self)
+    def process(self, transaction_ref=None):
+        with transaction.atomic():
+            if self.status == 'completed':
+                logger.warning(f"Payout {self.id} is already completed")
+                return True
+                
+            self.status = 'processing'
+            if transaction_ref:
+                self.transaction_ref = transaction_ref
+            self.save()
+
+            try:
+                # Deduct from cash pool
+                self.cashpool.balance = F('balance') - self.amount
+                self.cashpool.save(update_fields=['balance'])
+                self.cashpool.refresh_from_db()
+
+                # Record ledger entries
+                if not LedgerService.record_payout(self):
+                    raise ValidationError("Failed to record ledger entries")
+
+                self.status = 'completed'
+                self.completed_at = timezone.now()
+                self.save()
+                return True
+                
+            except Exception as e:
+                logger.error(f"Payout processing failed: {str(e)}")
+                self.status = 'failed'
+                self.failure_reason = str(e)
+                self.save()
+                return False

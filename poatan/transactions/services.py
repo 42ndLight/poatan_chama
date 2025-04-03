@@ -53,28 +53,41 @@ class LedgerService:
         
 
     def record_payout(cls, payout):
-        with transaction.atomic():
-            LedgerEntry.objects.create(
-                transaction_id=f"payout_{payout.id}",
-                                transaction_type='payout',
-                                entry_type='credit',
-                                amount=payout.amount,
-                                account='cashpool',
-                                reference_id=str(payout.id),
-                                chama=payout.cashpool.chama,
-                                user=payout.recipient,
-                                initiated_by=payout.initiated_by,
-                                description=f"Payout to {payout.recipient.username}"
-            )
-            LedgerEntry.objects.create(
-                transaction_id=f"payout_{payout.id}",
-                                transaction_type='payout',
-                                entry_type='debit',
-                                amount=payout.amount,
-                                account='member_equity',
-                                reference_id=str(payout.id),
-                                chama=payout.cashpool.chama,
-                                user=payout.recipient,
-                                initiated_by=payout.initiated_by,
-                                description=f"Payout debit from {payout.recipient.username}"
-            )
+        transaction_id = f"cont_{payout.id}"
+        
+        # Check if entry exists first
+        if LedgerEntry.objects.filter(transaction_id=transaction_id).exists():
+            logger.warning(f"Ledger entry already exists for contribution {payout.id}")
+            return False
+        
+        try:    
+            with transaction.atomic():
+                LedgerEntry.objects.create(
+                    transaction_id=f"payout_{payout.id}",
+                    transaction_type='payout',
+                    entry_type='credit',
+                    amount=payout.amount,
+                    account='cashpool',
+                    reference_id=str(payout.id),
+                    chama=payout.cashpool.chama,
+                    user=payout.recipient,
+                    initiated_by=payout.initiated_by,
+                    description=f"Payout to {payout.recipient.username}"
+                )
+                LedgerEntry.objects.create(
+                    transaction_id=f"payout_{payout.id}",
+                    entry_type='debit',
+                    transaction_type='payout',
+                    amount=payout.amount,
+                    account='member_equity',
+                    reference_id=str(payout.id),
+                    chama=payout.cashpool.chama,
+                    user=payout.recipient,
+                    initiated_by=payout.initiated_by,
+                    description=f"Payout debit from {payout.recipient.username}"
+                )
+            return True
+        
+        except IntegrityError as e:
+            logger.error(f"Failed to record contribution {payout.id}: {str(e)}")
+            return False

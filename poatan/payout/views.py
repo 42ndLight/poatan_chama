@@ -1,13 +1,16 @@
 from django.shortcuts import render
 from .serializers import PayoutSerializer, ProcessPayoutSerializer, PayoutCycleSerializer
-from rest_framework import generics, permissions, serializers
-from rest_framework.views import APIView
+from rest_framework import generics, permissions, serializers, status
 from .models import Payout, PayoutCycle
 from rest_framework.exceptions import PermissionDenied
-from cashpool.models import Chama
 from .permissions import IsChamaAdmin
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 class PayoutCycleView(generics.ListCreateAPIView):
@@ -65,80 +68,74 @@ class PayoutDetailView(generics.RetrieveAPIView):
         return payout
 
 class ProcessPayoutView(generics.UpdateAPIView):
-    queryset = Payout.objects.all()
     serializer_class = ProcessPayoutSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+    lookup_field = 'pk'
+    lookup_url_kwarg = 'pk'
+    queryset = Payout.objects.all()
 
-    def get_object(self):
-        payout = get_object_or_404(
-            Payout.objects.filter(
-                cashpool__chama__chama_admin=self.request.user
-            ),
-            pk=self.kwargs['pk']
+    def get_queryset(self):
+        return super().get_queryset().filter(
+            cashpool__chama__chama_admin=self.request.user
         )
-        if payout.status != 'pending':
-            raise serializers.ValidationError(
-                {"detail": "Only pending payouts can be processed"}
-            )
-        return payout
 
-    
     def update(self, request, *args, **kwargs):
-        payout = self.get_object()
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        action = serializer.validated_data['action']
-
-        if action == 'approve':
-            try:
-                success = payout.process()
-                if success:
-                    return Response(
-                        {"detail": "Payout processed successfully"},
-                        status=status.HTTP_200_OK
-                    )
+        try:
+            payout = self.get_object()
+            serializer = self.get_serializer(
+                payout,
+                data=request.data,
+                context={'payout': payout, 'request': request}
+            )
+            serializer.is_valid(raise_exception=True)
+            
+            response = super().update(request, *args, **kwargs)
+            
+            if response.status_code == status.HTTP_200_OK:
                 return Response(
-                    {"detail": "Payout processing failed"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {
+                        "status": "Payout processed successfully",
+                        "data": response.data
+                    },
+                    status=status.HTTP_200_OK
                 )
-            except Exception as e:
-                return Response(
-                    {"detail": str(e)},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        else:
-            payout.status = 'failed'
-            payout.failure_reason = serializer.validated_data.get('reason', 'Denied by admin')
-            payout.save()
+            
             return Response(
-                {"detail": "Payout rejected"},
+                {"detail": "Payout processed successfully"},
                 status=status.HTTP_200_OK
             )
+            
+        except ValidationError as e:
+            if "Failed to record ledger entry" in str(e):
+                # Check if payout was actually processed
+                payout.refresh_from_db()
+                if payout.status == 'completed':
+                    serializer = self.get_serializer(payout)
+                    return Response(
+                        {
+                            "status": "Payout already processed",
+                            "data": serializer.data
+                        },
+                        status=status.HTTP_200_OK
+                    )
+            
+            logger.error(f"Validation error processing payout: {str(e)}")
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        except PermissionDenied as e:
+            logger.error(f"Permission denied processing payout: {str(e)}")
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        except Exception as e:
+            logger.error(f"Error processing payout: {str(e)}", exc_info=True)
+            return Response(
+                {"detail": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
-class TriggerPayoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsChamaAdmin]
-    
-    def post(self, request, pk):
-        try:
-            cycle = PayoutCycle.objects.get(pk=pk)
-            print(f"Found cycle: {cycle.id}")  
-            
-            if not cycle.chama.admin == request.user:
-                return Response(
-                    {"error": "Only chama admins can trigger payouts"},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            success_count = cycle.trigger_payouts(initiated_by=request.user)
-            return Response(
-                {"success": success_count},
-                status=status.HTTP_201_CREATED
-            )
-            
-        except PayoutCycle.DoesNotExist:
-            print("Available cycles:", list(PayoutCycle.objects.all().values('id', 'chama')))  # Debug
-            return Response(
-                {"error": "Payout cycle not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
