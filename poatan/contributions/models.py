@@ -1,10 +1,10 @@
 from django.db import models, transaction
 from cashpool.models import Chama
+from django.utils import timezone
+import uuid
 from django.contrib.auth import get_user_model
 from django.db.models import F
 import logging
-
-
 
 logger = logging.getLogger(__name__)
 # Create your models here.
@@ -29,8 +29,14 @@ class Contribution(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_confirmed = models.BooleanField(default=False)
     confirmed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='confirmed_contributions')
-    transaction_id = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    transaction_ref = models.CharField(max_length=100, unique=True, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+
+    def generate_transaction_ref(self):
+        timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+        random_part = uuid.uuid4().hex[:6].upper()
+        return f"CNT-{timestamp}-{random_part}"
 
 
     def save(self, *args, **kwargs):

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class LedgerService:
     @classmethod
     def record_contribution(cls, contribution):
-        transaction_id = f"cont_{contribution.id}"
+        transaction_id = f"cont_{contribution.transaction_ref}"
         
         # Check if entry exists first
         if LedgerEntry.objects.filter(transaction_id=transaction_id).exists():

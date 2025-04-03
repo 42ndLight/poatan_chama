@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Contribution)
 def handle_contribution(sender, instance, created, **kwargs):
-    """Dual-layer recording: via save() AND signals"""
     if instance.status == 'confirmed':
         try:
             LedgerService.record_contribution(instance)
@@ -19,7 +18,6 @@ def handle_contribution(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Payout)
 def handle_payout_completion(sender, instance, **kwargs):
-    """Single handler for payout recording"""
     if instance.status == 'completed':
         try:
             LedgerService.record_payout(instance)

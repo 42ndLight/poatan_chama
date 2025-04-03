@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Contribution
+from django.utils import timezone
 from django.db import transaction
 from django.db.models import F
 
@@ -24,9 +25,14 @@ class ConfirmContributionSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         with transaction.atomic():
             if not instance.is_confirmed:
+                if not instance.transaction_ref:
+                        instance.transaction_ref = instance.generate_transaction_ref()
+                        instance.save()
+                        
                 instance.is_confirmed = True
                 instance.status = 'confirmed'
                 instance.confirmed_by = self.context['request'].user
+                instance.completed_at = timezone.now()
                 instance.save()
 
                 cash_pool = instance.chama.cash_pool

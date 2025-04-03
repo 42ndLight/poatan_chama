@@ -29,9 +29,7 @@ class LedgerEntry(models.Model):
                            on_delete=models.PROTECT,
                            related_name='ledger_entries')
     description = models.TextField(blank=True)
-    metadata = models.JSONField(default=dict)  
-
-
+    metadata = models.JSONField(default=dict) 
 
 
     class Meta:
