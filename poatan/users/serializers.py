@@ -1,14 +1,35 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from django.db.models import Sum
+from payout.models import Payout
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    contribution_stats = serializers.SerializerMethodField()
+    payout_stats = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'date_joined')
+        fields = ['id', 'username', 'email', 'first_name', 
+                  'last_name', 'is_staff', 'is_active', 
+                  'date_joined', 'contribution_stats', 'payout_stats']
+
+    def get_contribution_stats(self, obj):
+        contributions = obj.contributions.all()
+        return {
+            'count': contributions.count(),
+            'total_amount': contributions.aggregate(total=Sum('amount'))['total'] or 0
+        }
+
+    def get_payout_stats(self, obj):
+        payouts = Payout.objects.filter(recipient=obj)
+        return {
+            'count': payouts.count(),
+            'total_amount': payouts.aggregate(total=Sum('amount'))['total'] or 0
+        }
 
 
 class RegisterSerializer(serializers.ModelSerializer):
