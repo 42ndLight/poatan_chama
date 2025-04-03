@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .serializers import PayoutSerializer, ProcessPayoutSerializer, PayoutCycleSerializer
+from .serializers import PayoutSerializer, ProcessPayoutSerializer, PayoutCycleSerializer, PayoutProcessResponseSerializer
 from rest_framework import generics, permissions, serializers, status
 from .models import Payout, PayoutCycle
 from rest_framework.exceptions import PermissionDenied
@@ -85,57 +85,34 @@ class ProcessPayoutView(generics.UpdateAPIView):
             serializer = self.get_serializer(
                 payout,
                 data=request.data,
-                context={'payout': payout, 'request': request}
+                context={'request': request}
             )
-            serializer.is_valid(raise_exception=True)
+            serializer.is_valid(raise_exception=True)   
+            payout = serializer.save()    
+            response_serializer = PayoutProcessResponseSerializer(payout)
             
-            response = super().update(request, *args, **kwargs)
-            
-            if response.status_code == status.HTTP_200_OK:
-                return Response(
-                    {
-                        "status": "Payout processed successfully",
-                        "data": response.data
-                    },
-                    status=status.HTTP_200_OK
-                )
-            
-            return Response(
-                {"detail": "Payout processed successfully"},
-                status=status.HTTP_200_OK
-            )
+            return Response({
+                "status": "Payout processed successfully",
+                "data": response_serializer.data
+            }, status=status.HTTP_200_OK)
             
         except ValidationError as e:
-            if "Failed to record ledger entry" in str(e):
-                # Check if payout was actually processed
-                payout.refresh_from_db()
-                if payout.status == 'completed':
-                    serializer = self.get_serializer(payout)
-                    return Response(
-                        {
-                            "status": "Payout already processed",
-                            "data": serializer.data
-                        },
-                        status=status.HTTP_200_OK
-                    )
-            
             logger.error(f"Validation error processing payout: {str(e)}")
             return Response(
-                {"detail": str(e)},
+                {"detail": str(e.detail)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
-        except PermissionDenied as e:
-            logger.error(f"Permission denied processing payout: {str(e)}")
-            return Response(
-                {"detail": str(e)},
-                status=status.HTTP_403_FORBIDDEN
-            )
-            
         except Exception as e:
             logger.error(f"Error processing payout: {str(e)}", exc_info=True)
+            # Check if the payout was partially processed
+            if hasattr(e, 'payout'):
+                response_serializer = PayoutProcessResponseSerializer(e.payout)
+                return Response({
+                    "status": "Payout partially processed",
+                    "data": response_serializer.data,
+                    "warning": str(e)
+                }, status=status.HTTP_207_MULTI_STATUS)
             return Response(
                 {"detail": "An unexpected error occurred"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        

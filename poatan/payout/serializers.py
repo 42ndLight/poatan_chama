@@ -1,9 +1,10 @@
+from django.utils import timezone
 from rest_framework import serializers
 from .models import Payout, PayoutCycle
-from cashpool.models import CashPool
-from django.db import transaction
-from django.db.models import F
+import logging
+from django.db import IntegrityError, transaction
 
+logger = logging.getLogger(__name__)
 
 class PayoutCycleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,42 +42,67 @@ class PayoutSerializer(serializers.ModelSerializer):
         validated_data['initiated_by'] = self.context['request'].user
         return super().create(validated_data)
 
-class ProcessPayoutSerializer(serializers.Serializer):    
+class ProcessPayoutSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=['approve', 'reject'])
     reason = serializers.CharField(required=False, allow_blank=True)
-    transaction_ref = serializers.CharField(required=False)
-
+   
     def validate(self, data):
-        payout = self.context.get('payout')
+        payout = self.instance
         if not payout:
             raise serializers.ValidationError("Payout instance is required")
+        
+        if payout.status != 'pending':
+            raise serializers.ValidationError("Only pending payouts can be processed")
+        
         return data
 
     def update(self, instance, validated_data):
         action = validated_data.get('action')
         reason = validated_data.get('reason', '')
-        transaction_ref = validated_data.get('transaction_ref')
-
-        with transaction.atomic():
-            if action == 'approve':
-                if instance.status != 'pending':
-                    raise serializers.ValidationError(
-                        "Only pending payouts can be approved"
-                    )
-                if not instance.process(transaction_ref):
-                    raise serializers.ValidationError(
-                        "Payout processing failed. Check logs for details."
-                    )
-                cash_pool = instance.chama.cash_pool
-                cash_pool.balance = F('balance') - instance.amount
-                cash_pool.save(update_fields=['balance'])
-                cash_pool.refresh_from_db()
         
-            elif action == 'reject':
-                instance.status = 'failed'
-                instance.failure_reason = reason
-                instance.save()
-            return instance
-    
+        try:
+            with transaction.atomic():
+                if action == 'approve':
+                    instance.status = 'processing'
+                    instance.save()
+                    
+                    # Generate fresh transaction_ref if not set
+                    if not instance.transaction_ref:
+                        instance.transaction_ref = instance.generate_transaction_ref()
+                        instance.save()
+                    
+                    from transactions.services import LedgerService
+                    LedgerService.record_payout(instance)
+
+                    instance.status = 'completed'
+                    instance.completed_at = timezone.now()
+                    instance.save()
+
+                elif action == 'reject':
+                    instance.status = 'failed'
+                    instance.failure_reason = reason
+                    instance.save()
+
+                return instance
+                
+        except Exception as e:
+            logger.error(f"Error processing payout {instance.id}: {str(e)}")
+            instance.status = 'failed'
+            instance.failure_reason = str(e)
+            instance.save()
+            raise serializers.ValidationError(str(e))
+           
+class PayoutProcessResponseSerializer(serializers.ModelSerializer):
+    recipient_name = serializers.CharField(source='recipient.username', read_only=True)
+    initiator_name = serializers.CharField(source='initiated_by.username', read_only=True)
+
+    class Meta:
+        model = Payout
+        fields = [
+            'id', 'amount', 'status', 'transaction_ref',
+            'completed_at', 'failure_reason',
+            'recipient_name', 'initiator_name'
+        ]
+        read_only_fields = fields
 
 

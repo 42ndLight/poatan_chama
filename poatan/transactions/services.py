@@ -51,19 +51,19 @@ class LedgerService:
             logger.error(f"Failed to record contribution {contribution.id}: {str(e)}")
             return False
         
-
+    @classmethod
     def record_payout(cls, payout):
-        transaction_id = f"cont_{payout.id}"
+        transaction_id = payout.transaction_ref
         
         # Check if entry exists first
         if LedgerEntry.objects.filter(transaction_id=transaction_id).exists():
-            logger.warning(f"Ledger entry already exists for contribution {payout.id}")
-            return False
+            logger.warning(f"Ledger entry already exists for payout {payout.id}")
+            return True
         
         try:    
             with transaction.atomic():
                 LedgerEntry.objects.create(
-                    transaction_id=f"payout_{payout.id}",
+                    transaction_id=transaction_id,
                     transaction_type='payout',
                     entry_type='credit',
                     amount=payout.amount,
@@ -75,7 +75,7 @@ class LedgerService:
                     description=f"Payout to {payout.recipient.username}"
                 )
                 LedgerEntry.objects.create(
-                    transaction_id=f"payout_{payout.id}",
+                    transaction_id=transaction_id,
                     entry_type='debit',
                     transaction_type='payout',
                     amount=payout.amount,
@@ -89,5 +89,5 @@ class LedgerService:
             return True
         
         except IntegrityError as e:
-            logger.error(f"Failed to record contribution {payout.id}: {str(e)}")
-            return False
+            logger.error(f"Failed to record payout {payout.id}: {str(e)}")
+            raise

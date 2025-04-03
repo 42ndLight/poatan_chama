@@ -2,9 +2,8 @@ from django.db import models, transaction
 from cashpool.models import Chama
 from django.contrib.auth import get_user_model
 from django.db.models import F
-from django.core.exceptions import ValidationError
 import logging
-from transactions.services import LedgerService
+
 
 
 logger = logging.getLogger(__name__)

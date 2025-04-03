@@ -72,6 +72,7 @@ class ConfirmContributionView(generics.UpdateAPIView):
                 {"detail": "Contribution processed successfully"},
                 status=status.HTTP_200_OK
             )
+        
         except ValidationError as e:
             if "Failed to record ledger entry" in str(e):
                 contribution = self.get_object()
@@ -80,6 +81,7 @@ class ConfirmContributionView(generics.UpdateAPIView):
                     return Response(serializer.data, status=status.HTTP_200_OK)
             logger.error(f"Validation error confirming contribution: {str(e)}")
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        
         except Exception as e:
             logger.error(f"Error confirming contribution: {str(e)}", exc_info=True)
             return Response(

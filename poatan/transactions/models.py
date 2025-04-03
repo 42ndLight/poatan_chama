@@ -16,7 +16,7 @@ class LedgerEntry(models.Model):
         ('adjustment', 'Adjustment'),
     ]
 
-    transaction_id = models.CharField(max_length=100, unique=True)
+    transaction_id = models.CharField(max_length=100)
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     timestamp = models.DateTimeField(auto_now_add=True)
     initiated_by = models.ForeignKey(User, on_delete=models.PROTECT)

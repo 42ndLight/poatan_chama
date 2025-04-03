@@ -1,11 +1,14 @@
 from datetime import timedelta
+from django.utils import timezone
+import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.forms import ValidationError
 from cashpool.models import CashPool
 from django.db.models import Sum
-from django.utils import timezone
+
 from django.db import transaction
+from django.db.models import F
 from transactions.services import LedgerService
 import logging
 
@@ -120,40 +123,39 @@ class Payout(models.Model):
         cls.objects.bulk_create(payouts)
         return len(payouts)
     
+    def generate_transaction_ref(self):
+        timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+        random_part = uuid.uuid4().hex[:6].upper()
+        return f"PYT-{timestamp}-{random_part}"
+
+
     def save(self, *args, **kwargs):
         if not self.pk and self.status == 'completed':
-            raise ValidationError("New payouts cannot be created as completed")
-        super().save(*args, **kwargs)
-
-    def process(self, transaction_ref=None):
-        with transaction.atomic():
-            if self.status == 'completed':
-                logger.warning(f"Payout {self.id} is already completed")
-                return True
-                
-            self.status = 'processing'
-            if transaction_ref:
-                self.transaction_ref = transaction_ref
-            self.save()
-
-            try:
-                # Deduct from cash pool
-                self.cashpool.balance = F('balance') - self.amount
-                self.cashpool.save(update_fields=['balance'])
-                self.cashpool.refresh_from_db()
-
-                # Record ledger entries
-                if not LedgerService.record_payout(self):
-                    raise ValidationError("Failed to record ledger entries")
-
-                self.status = 'completed'
-                self.completed_at = timezone.now()
-                self.save()
-                return True
-                
-            except Exception as e:
-                logger.error(f"Payout processing failed: {str(e)}")
-                self.status = 'failed'
-                self.failure_reason = str(e)
-                self.save()
-                return False
+            raise ValidationError("New payouts cannot be created as completed")       
+    
+        if not self.pk:
+        # Generate transaction_ref only for new pending payouts
+            if not self.transaction_ref and self.status == 'pending':
+                self.transaction_ref = self.generate_transaction_ref()
+            return super().save(*args, **kwargs)      
+    
+        if self.status in ['processing', 'completed']:
+            with transaction.atomic():
+                try:
+                    if self.status == 'completed':
+                        # Deduct from cash pool
+                        self.cashpool.balance = F('balance') - self.amount
+                        self.cashpool.save(update_fields=['balance'])
+                        self.cashpool.refresh_from_db()
+                        self.completed_at = timezone.now()
+                    
+                    return super().save(*args, **kwargs)
+                    
+                except Exception as e:
+                    logger.error(f"Payout processing failed: {str(e)}")
+                    self.status = 'failed'
+                    self.failure_reason = str(e)
+                    return super().save(*args, **kwargs)
+    
+        # For other cases (updates that don't require transaction)
+        return super().save(*args, **kwargs)

@@ -17,12 +17,12 @@ def handle_contribution(sender, instance, created, **kwargs):
         except Exception as e:
             logger.error(f"Signal failed to record contribution {instance.id}: {e}")
 
-@receiver(post_save, sender=Contribution)
-def record_contribution(sender, instance, created, **kwargs):
-    if instance.status == 'confirmed' and not created:
-        LedgerService.record_contribution(instance)
-
 @receiver(post_save, sender=Payout)
-def record_payout(sender, instance, created, **kwargs):
-    if instance.status == 'completed' and not created:
-        LedgerService.record_payout(instance)
+def handle_payout_completion(sender, instance, **kwargs):
+    """Single handler for payout recording"""
+    if instance.status == 'completed':
+        try:
+            LedgerService.record_payout(instance)
+        except Exception as e:
+            logger.error(f"Failed to auto-record payout {instance.id}: {e}")
+
