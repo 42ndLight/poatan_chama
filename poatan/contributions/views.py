@@ -3,10 +3,14 @@ from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import status
 from cashpool.models import Chama
+from rest_framework.response import Response 
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
 from .models import Contribution
 from .serializers import ContributionSerializer, ConfirmContributionSerializer
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ContributionListCreateView(generics.ListCreateAPIView):
     serializer_class = ContributionSerializer
@@ -46,7 +50,7 @@ class ConfirmContributionView(generics.UpdateAPIView):
     lookup_url_kwarg = 'contribution_id'
 
     def get_queryset(self):
-        return Contribution.objects.all()
+        return Contribution.objects.filter(chama__chama_admin=self.request.user)
 
     def get_object(self):
         contribution = get_object_or_404(
@@ -59,8 +63,26 @@ class ConfirmContributionView(generics.UpdateAPIView):
             
         return contribution
 
-    def perform_update(self, serializer):
-        serializer.save(
-            is_confirmed=True,
-            status='confirmed'
-        )
+    def update(self, request, *args, **kwargs):
+        try:
+            response = super().update(request, *args, **kwargs)
+            if response.status_code == status.HTTP_200_OK:
+                return response
+            return Response(
+                {"detail": "Contribution processed successfully"},
+                status=status.HTTP_200_OK
+            )
+        except ValidationError as e:
+            if "Failed to record ledger entry" in str(e):
+                contribution = self.get_object()
+                if contribution.is_confirmed:
+                    serializer = self.get_serializer(contribution)
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+            logger.error(f"Validation error confirming contribution: {str(e)}")
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error confirming contribution: {str(e)}", exc_info=True)
+            return Response(
+                {"detail": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

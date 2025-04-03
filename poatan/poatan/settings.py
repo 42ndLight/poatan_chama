@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'payout',
     'django_filters',
     'contributions',
-    'transactions',
+    'transactions.apps.TransactionsConfig',
 ]
 
 MIDDLEWARE = [
