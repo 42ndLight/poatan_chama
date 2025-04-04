@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import PayoutView, PayoutDetailView, ProcessPayoutView, PayoutCycleView
 
+"""Url Endpoints for the Payout views"""
 urlpatterns = [
     path('', PayoutView.as_view(), name='payout'),
     path('<int:pk>/', PayoutDetailView.as_view(), name='payout-detail'),

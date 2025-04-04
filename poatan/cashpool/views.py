@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import views, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .serializers import ( 
                         RegisterChamaSerializer,
                         ChamaSerializer,
@@ -14,11 +14,27 @@ from .models import Chama, CashPool
 from rest_framework import generics, serializers
 
 # Create your views here.
+"""
+Views for CRUD Operations for a Chama
+
+Includes endpoints for:
+- Creating new chamas
+- Listing/viewing chamas
+- Updating chama details
+- Joining existing chamas
+- Managing chama members
+
+Permissions:
+    - Authenticated users only
+    - Enforced for Creating, Listing, Updating, Joining and Managing
+
+"""
 class RegisterChamaView(generics.CreateAPIView):
     queryset = Chama.objects.all()
     permission_classes = [IsAuthenticated]
     serializer_class = RegisterChamaSerializer
 
+    # Sets user to chama admin
     def perform_create(self, serializer):
         serializer.save(chama_admin=self.request.user)
 
@@ -31,6 +47,7 @@ class DetailChamaView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ChamaSerializer
 
+    # Retrieve info based on a specific chama
     def get_object(self):
         chama = get_object_or_404(
             Chama.objects.filter(
@@ -44,6 +61,7 @@ class UpdateChamaView(generics.UpdateAPIView):
     serializer_class = ChamaSerializer
     permission_classes = [IsAuthenticated]
 
+    # Ensures only the chama admin can update its details
     def get_object(self):
         chama = super().get_object()
         if chama.chama_admin != self.request.user:
@@ -57,7 +75,8 @@ class JoinChamaView(views.APIView):
     def post(self, request):
         serializer = JoinChamaSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        
+
+        #Catching errors during joining
         try:
             result = serializer.save()
             return Response({
@@ -72,7 +91,7 @@ class JoinChamaView(views.APIView):
 class ChamaMembersView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Chama.objects.all()
     serializer_class = ChamaMemberSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
     
 
@@ -80,6 +99,7 @@ class CashPoolView(generics.RetrieveAPIView):
     serializer_class = CashPoolSerializer
     permission_classes = [IsAuthenticated]
 
+    # Returns info an a specific chama's cashpool
     def get_object(self):
         chama_id = self.kwargs.get('chama_id') or self.request.user.chama.id
         try:

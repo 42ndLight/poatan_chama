@@ -65,7 +65,13 @@ class PayoutCycle(models.Model):
                 logger.error(f"Payout failed for {member}: {str(e)}")
         return success
 
+"""
+    A model to handle a Payout and its nessecary attributes.
+    A payout can have a status for the various steps in processing
+    Its Save method ensures cash pool updates after processing a payout
 
+
+"""
 
 class Payout(models.Model):
     STATUS_CHOICES = [
@@ -123,6 +129,7 @@ class Payout(models.Model):
         cls.objects.bulk_create(payouts)
         return len(payouts)
     
+    # Algorithm creates a random reference number for each processed payout
     def generate_transaction_ref(self):
         timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
         random_part = uuid.uuid4().hex[:6].upper()
@@ -130,11 +137,12 @@ class Payout(models.Model):
 
 
     def save(self, *args, **kwargs):
+        # Ensures Payout is processed before updating 
         if not self.pk and self.status == 'completed':
             raise ValidationError("New payouts cannot be created as completed")       
     
         if not self.pk:
-        # Generate transaction_ref only for new pending payouts
+            # Generate transaction_ref only for new pending payouts
             if not self.transaction_ref and self.status == 'pending':
                 self.transaction_ref = self.generate_transaction_ref()
             return super().save(*args, **kwargs)      

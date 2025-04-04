@@ -7,8 +7,16 @@ from django.db.models import F
 import logging
 
 logger = logging.getLogger(__name__)
-# Create your models here.
+
+# Calls User model from settings.py
 User = get_user_model()
+
+"""
+    A model to handle a Contribution and its nessecary attributes
+    A contribution can have a status for the various steps in processing and a type
+    Its Save method ensures cash pool updates after confirming a contribution
+
+"""
 
 class Contribution(models.Model):
     CONTRIBUTION_TYPES = (
@@ -32,7 +40,7 @@ class Contribution(models.Model):
     transaction_ref = models.CharField(max_length=100, unique=True, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
-
+    # Algorithm creates a random reference number for each confrimed contribution
     def generate_transaction_ref(self):
         timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
         random_part = uuid.uuid4().hex[:6].upper()
@@ -40,7 +48,6 @@ class Contribution(models.Model):
 
 
     def save(self, *args, **kwargs):
-        # Ensure cash pool updates after confirming contribution
         with transaction.atomic(): 
             is_new = self._state.adding
             old_instance = None

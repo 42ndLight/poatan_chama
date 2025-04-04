@@ -4,6 +4,10 @@ from django.utils import timezone
 from django.db import transaction
 from django.db.models import F
 
+"""
+    A serializer for Contribution data when perfoming CRUD operations on the Contribution
+    The Contribution can only be Created and Read
+"""
 class ContributionSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
     chama = serializers.StringRelatedField()
@@ -15,7 +19,12 @@ class ContributionSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'chama', 'created_at', 'updated_at']
   
         
+"""
+    This Serializer passes info to confirm the contribution.
+    The Update method  ensure the cashpool balance is updated gracefully 
+     while recording the transaction into the ledger.
 
+"""
 class ConfirmContributionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contribution
@@ -40,7 +49,7 @@ class ConfirmContributionSerializer(serializers.ModelSerializer):
                 cash_pool.save(update_fields=['balance'])
                 cash_pool.refresh_from_db()
 
-        
+            #Recording the contribution on the ledger
             from transactions.services import LedgerService
             if not LedgerService.record_contribution(instance):
                 if instance.is_confirmed:

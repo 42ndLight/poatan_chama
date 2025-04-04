@@ -12,6 +12,14 @@ class PayoutCycleSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('end_date',)
 
+"""
+    A serializer for Payout data when perfoming CRUD operations on the Payout
+    The Payout can only be Created and Read
+    Handles:
+        Payout Creation: on Valid data passed by user and ensures the creator of payout is the user
+        Validation:  Ensure payout is made from a valid Cashpool and user is an admin
+
+"""
 class PayoutSerializer(serializers.ModelSerializer):
     recipient_name = serializers.CharField(source='recipient.username', read_only=True)
     initiator_name = serializers.CharField(source='initiated_by.username', read_only=True)
@@ -42,6 +50,12 @@ class PayoutSerializer(serializers.ModelSerializer):
         validated_data['initiated_by'] = self.context['request'].user
         return super().create(validated_data)
 
+"""
+    This Serializer passes info to process the Payout;
+    The Update method  ensure the cashpool balance is updated gracefully 
+     while recording the transaction into the ledger.
+
+"""
 class ProcessPayoutSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=['approve', 'reject'])
     reason = serializers.CharField(required=False, allow_blank=True)

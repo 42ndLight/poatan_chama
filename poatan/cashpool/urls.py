@@ -8,7 +8,9 @@ from .views import (
     ChamaMembersView,
     CashPoolView
 )
-
+"""
+    Endpoints Urls for the Chama and its Cashpool
+"""
 urlpatterns = [
     path('new/', RegisterChamaView.as_view(), name='register_chama'),
     path('list/', ListChamaView.as_view(), name='list_chama'),

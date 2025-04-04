@@ -9,6 +9,7 @@ from django.conf import settings
 User = get_user_model()
 
 # Create your models here.
+'''A model to present a chama and its attribtes'''
 class Chama(models.Model):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)
@@ -20,12 +21,14 @@ class Chama(models.Model):
     def __str__(self):
         return self.name
 
+'''Each Chama gets a cashpool(i.e Wallet)'''
+'''One Chama has only one wallet'''
 class CashPool(models.Model):
     chama = models.OneToOneField(Chama, on_delete=models.CASCADE, related_name="cash_pool")
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     updated_at = models.DateTimeField(auto_now=True)
     
-
+    '''Method to update balance from contributions and payouts''' 
     def update_balance(self):
         total_contributions = self.chama.contributions.filter(is_confrimed=True).aggregate(Sum('amount'))['amount__sum'] or 0
         total_payouts = self.chama.payouts.aggregate(Sum('amount'))['amount__sum'] or 0
