@@ -1,6 +1,10 @@
-from django.db import models
+"""
+This module defines the `LedgerEntry` model, which represents individual financial transactions 
+within a ledger. It includes details such as transaction type, amount, associated user, and 
+metadata. The model is indexed for efficient querying and supports ordering by timestamp.
+"""
 from django.contrib.auth import get_user_model
-
+from django.db import models
 
 User = get_user_model()
 

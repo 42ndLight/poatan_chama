@@ -1,4 +1,11 @@
+
 from django.db.models.signals import post_save
+"""
+signals.py
+
+This module defines Django signal handlers for the Contribution and Payout models.
+It listens to post-save events and triggers ledger recording operations via the LedgerService.
+"""
 from django.dispatch import receiver
 from contributions.models import Contribution
 from payout.models import Payout

@@ -1,8 +1,15 @@
-from django.shortcuts import render
+"""
+This module defines views for handling ledger transactions in the application.
+It includes a `LedgerListView` class-based view that provides a filtered list
+of ledger entries using Django REST framework's generic views and filtering
+capabilities.
+"""
 from rest_framework import generics
 from django_filters.rest_framework import DjangoFilterBackend
 from .serializers import LedgerEntrySerializer, LedgerFilterSerializer
 from .models import LedgerEntry
+from django.shortcuts import render
+
 
 # Create your views here.
 class LedgerListView(generics.ListAPIView):

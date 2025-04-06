@@ -1,10 +1,31 @@
-from django.db import transaction
+"""
+services.py
+This module provides services for managing ledger entries in a Django application. 
+It includes functionality to record contributions and payouts in the ledger while 
+ensuring data integrity through the use of database transactions.
+Classes:
+    LedgerService:
+        A service class that provides methods to record contributions and payouts 
+        as ledger entries. It ensures that duplicate entries are not created and 
+        handles database integrity errors gracefully.
+Methods:
+    LedgerService.record_contribution(contribution):
+        Records a contribution as a debit entry in the ledger. Checks for duplicate 
+        entries before creating a new one. Uses a database transaction to ensure 
+        atomicity and logs any errors encountered.
+    LedgerService.record_payout(payout):
+        Records a payout as a credit entry in the ledger. Checks for duplicate 
+        entries before creating a new one. Uses a database transaction to ensure 
+        atomicity and raises an exception if an error occurs.
+"""
 from .models import LedgerEntry
 from django.db import IntegrityError
 import logging
-
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
+
+
 
 class LedgerService:
     @classmethod
@@ -31,20 +52,7 @@ class LedgerService:
                     initiated_by=contribution.confirmed_by,
                     description=f"Contribution from {contribution.user.username}"
                 )
-                
-                # Create credit entry with suffix
-                LedgerEntry.objects.create(
-                    transaction_id=f"{transaction_id}_cr",
-                    transaction_type='contribution',
-                    entry_type='credit',
-                    amount=contribution.amount,
-                    account='member_equity',
-                    reference_id=str(contribution.id),
-                    chama=contribution.chama,
-                    user=contribution.user,
-                    initiated_by=contribution.confirmed_by,
-                    description=f"Contribution credit to {contribution.user.username}"
-                )
+        
             return True
             
         except IntegrityError as e:
@@ -74,18 +82,7 @@ class LedgerService:
                     initiated_by=payout.initiated_by,
                     description=f"Payout to {payout.recipient.username}"
                 )
-                LedgerEntry.objects.create(
-                    transaction_id=transaction_id,
-                    entry_type='debit',
-                    transaction_type='payout',
-                    amount=payout.amount,
-                    account='member_equity',
-                    reference_id=str(payout.id),
-                    chama=payout.cashpool.chama,
-                    user=payout.recipient,
-                    initiated_by=payout.initiated_by,
-                    description=f"Payout debit from {payout.recipient.username}"
-                )
+        
             return True
         
         except IntegrityError as e:

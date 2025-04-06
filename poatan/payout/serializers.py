@@ -40,10 +40,6 @@ class PayoutSerializer(serializers.ModelSerializer):
         if not cashpool:
             raise serializers.ValidationError({"cashpool": "Cashpool is required"})
             
-        if cashpool.chama.chama_admin != self.context['request'].user:
-            raise serializers.ValidationError(
-                {"admin": "Only the chama admin can create payouts"}
-            )
         return data
     
     def create(self, validated_data):
@@ -78,7 +74,7 @@ class ProcessPayoutSerializer(serializers.Serializer):
             with transaction.atomic():
                 if action == 'approve':
                     instance.status = 'processing'
-                    instance.save()
+    
                     
                     # Generate fresh transaction_ref if not set
                     if not instance.transaction_ref:

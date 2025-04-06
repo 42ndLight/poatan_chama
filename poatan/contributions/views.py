@@ -65,7 +65,7 @@ class ConfirmContributionView(generics.UpdateAPIView):
     lookup_url_kwarg = 'contribution_id'
 
     def get_queryset(self):
-        return Contribution.objects.filter(chama__chama_admin=self.request.user)
+        return Contribution.objects.filter(user=self.request.user, status='pending')
 
 
     def update(self, request, *args, **kwargs):
