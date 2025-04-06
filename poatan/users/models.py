@@ -3,6 +3,11 @@ from django.contrib.auth.models import AbstractUser, Group, Permission
 
 
 # Create your models here.
+"""
+    This User model inherits from AbstractUser with modifications to 
+    allow a user have a role, phone no and role in a chama
+    Both Groups and permissions need to be overriden to function
+"""
 class User(AbstractUser):
     ROLE_CHOICES = [
         ('contributor', 'Contributor'),

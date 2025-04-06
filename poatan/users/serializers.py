@@ -5,8 +5,15 @@ from payout.models import Payout
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.password_validation import validate_password
 
-User = get_user_model()
+User = get_user_model() #importng from Global user model
 
+""" 
+    A serializer to pass info relevant to user
+    Defining Contribution stats and Payout Stats to show user 
+    their current status at one time done 
+    via methods get_payout_stats or get_contributions_stats
+
+"""
 class UserSerializer(serializers.ModelSerializer):
     contribution_stats = serializers.SerializerMethodField()
     payout_stats = serializers.SerializerMethodField()
@@ -30,7 +37,9 @@ class UserSerializer(serializers.ModelSerializer):
             'count': payouts.count(),
             'total_amount': payouts.aggregate(total=Sum('amount'))['total'] or 0
         }
-
+"""
+    This Serializer to parse info to create a new user
+"""
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -44,6 +53,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
     
+"""
+    This Serializer to parse info to login a user
+    It uses JWT tokens to provide authorization and authentication for users
+"""
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
@@ -61,7 +74,11 @@ class LoginSerializer(serializers.Serializer):
             'access': str(refresh.access_token),
             'user' : UserSerializer(user).data
             }
-    
+
+"""
+    This Serializer to parse info to update a user profile
+    A user can change their username, email and phone number
+"""  
 class UpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -75,11 +92,16 @@ class UpdateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+"""
+    This Serializer to parse info to allow a user to change their accounts password
+    The payload should contain the old password and newpassword confirmed twice to change the password
+"""
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True, validators=[validate_password])
     confirm_password = serializers.CharField(required=True)
-
+    
+    # Method to  ensure old password is correct
     def validate_old_password(self, value):
         user = self.context['request'].user
         if not user.check_password(value):
@@ -96,20 +118,25 @@ class ChangePasswordSerializer(serializers.Serializer):
         instance.set_password(validated_data['new_password'])
         instance.save()
         return instance
-    
+
+"""
+    This Serializer to parse info to allow a user to delete their profile
+    The User should pass their password to successfully delete tjeir profile
+""" 
 class UserDeleteSerializer(serializers.ModelSerializer):
     password = serializers.CharField(required=True)
 
     class Meta:
         model = User
         fields = ['password']
-    
+    # Method to compare passwords
     def validate_password(self, value):
         user = self.context['request'].user
         if not user.check_password(value):
             raise serializers.ValidationError("Password is incorrect")
         return value
-
+    
+    # Method to delete user instance
     def delete(self, instance):
         instance.delete()
         return instance

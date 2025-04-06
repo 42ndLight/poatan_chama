@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import views, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .serializers import ( 
                         RegisterChamaSerializer,
@@ -40,7 +41,7 @@ class RegisterChamaView(generics.CreateAPIView):
 
 class ListChamaView(generics.ListAPIView):
     queryset = Chama.objects.all()
-    permission_classes  = [IsAuthenticated]
+    permission_classes  = [IsAuthenticated, IsAdminUser]
     serializer_class = ChamaSerializer
 
 class DetailChamaView(generics.RetrieveAPIView):
@@ -97,7 +98,7 @@ class ChamaMembersView(generics.RetrieveUpdateDestroyAPIView):
 
 class CashPoolView(generics.RetrieveAPIView):
     serializer_class = CashPoolSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
     # Returns info an a specific chama's cashpool
     def get_object(self):

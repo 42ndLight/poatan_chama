@@ -28,27 +28,33 @@ class ContributionSerializer(serializers.ModelSerializer):
 class ConfirmContributionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contribution
-        fields = ['is_confirmed', 'status', 'confirmed_by']
-        read_only_fields = ['is_confirmed', 'confirmed_by']
+        fields = ['status', 'confirmed_by']
+        read_only_fields = ['confirmed_by']
+
+    def validate(self, data):
+        if self.instance.status != 'pending':
+            raise serializers.ValidationError(
+                "Only pending contributions can be confirmed"
+            )
+        return data
 
     def update(self, instance, validated_data):
         with transaction.atomic():
-            if not instance.is_confirmed:
-                if not instance.transaction_ref:
-                        instance.transaction_ref = instance.generate_transaction_ref()
-                        instance.save()
+            if not instance.transaction_ref:
+                    instance.transaction_ref = instance.generate_transaction_ref()
+                    instance.save()
                         
-                instance.is_confirmed = True
-                instance.status = 'confirmed'
-                instance.confirmed_by = self.context['request'].user
-                instance.completed_at = timezone.now()
-                instance.save()
+            instance.is_confirmed = True
+            instance.status = 'confirmed'
+            instance.confirmed_by = self.context['request'].user
+            instance.completed_at = timezone.now()
+            instance.save()
 
-                cash_pool = instance.chama.cash_pool
-                cash_pool.balance = F('balance') + instance.amount
-                cash_pool.save(update_fields=['balance'])
-                cash_pool.refresh_from_db()
-
+            cash_pool = instance.chama.cash_pool
+            cash_pool.balance = F('balance') + instance.amount
+            cash_pool.save(update_fields=['balance'])
+            cash_pool.refresh_from_db()
+            
             #Recording the contribution on the ledger
             from transactions.services import LedgerService
             if not LedgerService.record_contribution(instance):

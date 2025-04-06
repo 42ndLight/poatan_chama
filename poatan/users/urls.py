@@ -9,9 +9,7 @@ from .views import (
     DeleteProfileView
     
 )
-
-
-
+"""Url Endpoints for the User Login and Profile views"""
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),

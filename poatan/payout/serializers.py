@@ -106,6 +106,10 @@ class ProcessPayoutSerializer(serializers.Serializer):
             instance.save()
             raise serializers.ValidationError(str(e))
            
+"""
+    This Serializer processes the Payout, pushes info to confirm a payout 
+
+"""
 class PayoutProcessResponseSerializer(serializers.ModelSerializer):
     recipient_name = serializers.CharField(source='recipient.username', read_only=True)
     initiator_name = serializers.CharField(source='initiated_by.username', read_only=True)

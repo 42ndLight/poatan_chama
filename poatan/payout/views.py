@@ -18,6 +18,11 @@ class PayoutCycleView(generics.ListCreateAPIView):
     serializer_class = PayoutCycleSerializer
     permission_classes = [permissions.IsAdminUser, IsChamaAdmin]
 
+"""
+    This View allows a user to create a new payout order and list them
+    Its selects data based on filter such as chama_id and initiated_by in get_queryset
+
+"""
 class PayoutView(generics.ListCreateAPIView):
     serializer_class = PayoutSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -44,6 +49,9 @@ class PayoutView(generics.ListCreateAPIView):
     def perform_create(self, serializer):        
         serializer.save(initiated_by=self.request.user)
 
+"""
+    This View shows specific details on a Payout to members of his chama
+"""
 class PayoutDetailView(generics.RetrieveAPIView):
     queryset = Payout.objects.all()
     serializer_class = PayoutSerializer
@@ -66,7 +74,12 @@ class PayoutDetailView(generics.RetrieveAPIView):
             pk=self.kwargs['pk']
         )
         return payout
+    
+"""
+    This View allows the admin to process a PAyout 
+    it changes its status to confirmed and records the payoutin ledger via update method
 
+"""
 class ProcessPayoutView(generics.UpdateAPIView):
     serializer_class = ProcessPayoutSerializer
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
