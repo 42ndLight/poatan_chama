@@ -15,33 +15,43 @@ CashPool is a **Chama (informal savings group) management system** designed to f
 
 ## Apps & Their Functionalities
 
-### **1️⃣ User Authentication & Profile Management** (`auth` app)
+### **1️⃣ User Authentication & Profile Management** (`users` app)
 This app handles user registration, authentication, and profile management.
 
 #### **Endpoints:**
 | Endpoint                     | Method | Description                         |
 |------------------------------|--------|-------------------------------------|
-| `/register/`                 | `POST` | Register a new user                |
-| `/login/`                    | `POST` | User login                         |
-| `/logout/`                   | `POST` | User logout                        |
-| `/profile/`                  | `GET`  | View user profile                  |
-| `/profile/update/`           | `PUT`  | Update user profile                |
-| `/profile/change-password/`  | `POST` | Change password                    |
-| `/profile/delete/`           | `DELETE` | Delete user account               |
+| `users/register/`                 | `POST` | Register a new user                |
+| `users/login/`                    | `POST` | User login                         |
+| `users/logout/`                   | `POST` | User logout                        |
+| `users/profile/`                  | `GET`  | View user profile                  |
+| `users/profile/update/`           | `PUT`  | Update user profile                |
+| `users/profile/change-password/`  | `POST` | Change password                    |
+| `users/profile/delete/`           | `DELETE` | Delete user account               |
+
+ EACH APP has it own README file containing all the payloads to test app
+Click ME : 
+   [User Module README](poatan/users/READMEUSER.md)
 
 ---
 
-### **2️⃣ Chama Management** (`chama` app)
+### **2️⃣ Chama Management** (`cashpool` app)
 This app allows users to create and manage **Chamas**, where each Chama has a unique **cash pool** and a structured hierarchy.
 
 #### **Endpoints:**
 | Endpoint                   | Method | Description                       |
 |----------------------------|--------|-----------------------------------|
-| `/chama/register/`         | `POST` | Create a new Chama               |
-| `/chama/join/`             | `POST` | Join an existing Chama           |
-| `/chama/<int:pk>/`         | `GET`  | Get Chama details                |
-| `/chama/<int:pk>/members/` | `GET`  | List all Chama members & roles   |
-| `/chama/<int:pk>/cashpool/`| `GET`  | Get Chama's current cash pool    |
+| `/cashpool/new/`         | `POST` | Create a new Chama               |
+| `/cashpool/list/`         | `GET` | Create a new Chama               |
+| `/cashpool/detail/<int:pk>/`         | `GET` | Create a new Chama               |
+| `/cashpool/join/`             | `POST` | Join an existing Chama           |
+| `/cashpool/<int:pk>/`         | `GET`  | Get Chama details                |
+| `/cashpool/members/<int:pk>/` | `GET`  | List all Chama members & roles   |
+| `/cashpool/cashpool/<int:pk>/`| `GET`  | Get Chama's current cash pool    |
+
+EACH APP has it own README file containing all the payloads to test app
+Click ME : 
+   [CHAMA Module README](poatan/cashpool/READMEChama.md)
 
 ---
 
@@ -51,30 +61,46 @@ This app enables users to **make and track their contributions** within a Chama.
 #### **Endpoints:**
 | Endpoint                     | Method | Description                           |
 |------------------------------|--------|---------------------------------------|
-| `/contribution/add/`         | `POST` | Add a new contribution               |
-| `/contribution/<int:pk>/`    | `GET`  | View details of a specific contribution |
-| `/contribution/list/`        | `GET`  | List all contributions in a Chama    |
-| `/contribution/confirm/`     | `POST` | Confirm a contribution (Admin)       |
+| `/contributions/new/`         | `POST` | Add a new contribution               |
+| `/contributions/detail//`         | `GET` | Add a new contribution               |
+| `/contributions/chama/<int:pk>/`    | `GET`  | View details of a specific contribution |
+| `/contributions/confirm/{contribution_id}/`     | `PATCH` | Confirm a contribution (Admin)       |
+
+EACH APP has it own README file containing all the payloads to test app
+Click ME : 
+   [Contribution Module README](poatan/contributions/READMEUSER.md)
 
 ---
 
-### **4️⃣ Cash Pool Management** (`cashpool` app)
-Handles the **financial transactions and cash pool tracking** for each Chama.
+### **4️⃣ Payout Management** (`payout` app)
+This app handles the management of payouts from Chama cash pools to members.
 
 #### **Endpoints:**
 | Endpoint                     | Method | Description                           |
 |------------------------------|--------|---------------------------------------|
-| `/cashpool/<int:pk>/`        | `GET`  | View cash pool balance               |
-| `/cashpool/update/`          | `POST` | Update cash pool balance (Admin)    |
+| `/payout/`                   | `GET`  | List all payouts                     |
+| `/payout/`                   | `POST` | Create a new payout request          |
+| `/payout/{payout_id}/process/`      | `PATCH`| Process payout request (approve/reject)|
+
+EACH APP has it own README file containing all the payloads to test app
+Click ME : 
+   [Payout Module README](poatan/payout/READMEPayout.md)
 
 ---
 
-## 🚀 Latest Advancements
-1. **User Authentication & Profile Management** - Added full CRUD operations for user profiles.
-2. **Chama Hierarchy Implementation** - Defined `Chairman`, `Treasurer`, and `Contributor` roles.
-3. **Contribution Confirmation System** - Only authorized users (Treasurer/Chairman) can confirm contributions.
-4. **Cash Pool Management** - Introduced automatic cash pool updates after transactions.
-5. **Enhanced API Security** - Ensured only Chama members can view and interact with their group.
+### **5️⃣ Transaction Management** (`transactions` app)
+This app manages the ledger system, tracking all financial transactions within Chamas including deposits, withdrawals, and transfers.
+
+#### **Endpoints:**
+| Endpoint                     | Method | Description                           |
+|------------------------------|--------|---------------------------------------|
+| `/transactions/`             | `GET`  | List all transactions with filters   |
+
+EACH APP has it own README file containing all the payloads to test app
+Click ME : 
+   [Transaction Module README](poatan/transactions/READMETrans.md)
+
+---
 
 ## 🔧 Setup & Installation
 1. Clone the repository:
@@ -87,6 +113,7 @@ Handles the **financial transactions and cash pool tracking** for each Chama.
    ```
 3. Apply database migrations:
    ```sh
+   python manage.py makemigrations
    python manage.py migrate
    ```
 4. Run the development server:

@@ -21,7 +21,8 @@ Authorization: Bearer <access_token>
 
 ### 2. List Cashpools
 **Endpoint:** `GET /cashpool/list/`  
-**Description:** Retrieves all available cashpools  
+**Description:** Retrieves all available cashpools
+**Restriction:** Only Admins can view
 **Headers:**
 ```http
 Authorization: Bearer <access_token>

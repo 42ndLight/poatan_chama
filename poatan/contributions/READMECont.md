@@ -51,7 +51,6 @@ Authorization: Bearer <access_token>
 ```
 
 ## Notes
-- Replace `{id}` with actual contribution ID
 - Replace `{cashpool_id}` with actual cashpool ID
 - All requests require authentication
 - Contribution amounts are in the local currency

@@ -3,7 +3,7 @@
 ## Authentication & User Management
 
 ### 1. Register User
-**Endpoint:** `POST /api/users/register/`  
+**Endpoint:** `POST users/register/`  
 **Description:** Creates a new user account  
 **Request Body:**
 ```json
@@ -18,7 +18,7 @@
 **Expected Response:** `201 Created`
 
 ### 2. User Login
-**Endpoint:** `POST /login/`  
+**Endpoint:** `POST users/login/`  
 **Description:** Authenticates user and returns access token  
 **Request Body:**
 ```json
@@ -30,7 +30,7 @@
 **Expected Response:** `200 OK`
 
 ### 3. User Logout
-**Endpoint:** `POST /logout/`  
+**Endpoint:** `POST users/logout/`  
 **Description:** Invalidates the user's refresh token  
 **Request Body:**
 ```json
@@ -41,7 +41,7 @@
 **Expected Response:** `205 Reset Content`
 
 ### 4. View User Profile
-**Endpoint:** `GET /profile/`  
+**Endpoint:** `GET users/profile/`  
 **Description:** Fetches authenticated user's profile  
 **Headers:**
 ```http
@@ -50,7 +50,7 @@ Authorization: Bearer <access_token>
 **Expected Response:** `200 OK`
 
 ### 5. Update User Profile
-**Endpoint:** `PUT /profile/update/`  
+**Endpoint:** `PUT users/profile/update/`  
 **Description:** Updates user profile details  
 **Headers:**
 ```http
@@ -67,7 +67,7 @@ Authorization: Bearer <access_token>
 **Expected Response:** `200 OK`
 
 ### 6. Change Password
-**Endpoint:** `PUT /profile/change-password/`  
+**Endpoint:** `PUT users/profile/change-password/`  
 **Description:** Changes user password  
 **Headers:**
 ```http
@@ -84,11 +84,17 @@ Authorization: Bearer <access_token>
 **Expected Response:** `200 OK`
 
 ### 7. Delete User Account
-**Endpoint:** `DELETE /profile/delete/`  
+**Endpoint:** `DELETE users/profile/delete/`  
 **Description:** Deletes user account  
 **Headers:**
 ```http
 Authorization: Bearer <access_token>
+```
+**Request Body:**
+```json
+{
+  "password": "newsecurepassword456"
+}
 ```
 **Expected Response:** `204 No Content`
 

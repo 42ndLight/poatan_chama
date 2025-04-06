@@ -1,3 +1,9 @@
+"""
+This module contains views for user-related operations in the application.
+It includes functionalities for user registration, login, logout, profile retrieval,
+profile update, password change, and account deletion. These views utilize Django REST Framework
+and Simple JWT for authentication and permissions.
+"""
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from rest_framework import generics
