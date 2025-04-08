@@ -32,6 +32,10 @@
 ### 3. User Logout
 **Endpoint:** `POST users/logout/`  
 **Description:** Invalidates the user's refresh token  
+**Headers:**
+```http
+Authorization: Bearer <access_token>
+```
 **Request Body:**
 ```json
 {
