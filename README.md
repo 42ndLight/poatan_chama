@@ -68,7 +68,7 @@ This app enables users to **make and track their contributions** within a Chama.
 
 EACH APP has it own README file containing all the payloads to test app
 Click ME : 
-   [Contribution Module README](poatan/contributions/READMEUSER.md)
+   [Contribution Module README](poatan/contributions/READMECont.md)
 
 ---
 
