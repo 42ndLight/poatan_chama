@@ -63,7 +63,6 @@ Authorization: Bearer <access_token>
 **Request Body:**
 ```json
 {
-  "username": "DEVChanga",
   "email": "DEVS@example.com",
   "phone_no": "0700000000"
 }
