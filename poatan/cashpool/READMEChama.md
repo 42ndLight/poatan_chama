@@ -47,7 +47,8 @@ Authorization: Bearer <access_token>
 
 ### 4. Update Cashpool
 **Endpoint:** `PATCH /cashpool/update/{chama_id}/`  
-**Description:** Updates cashpool information  
+**Description:** Updates cashpool information
+**Restriction:** Only Admins can view  
 **Headers:**
 ```http
 Authorization: Bearer <access_token>
@@ -84,7 +85,8 @@ Authorization: Bearer <access_token>
 
 ### 7. View Specific Cashpool
 **Endpoint:** `GET /cashpool/cashpool/{chama_id}/`  
-**Description:** Retrieves information for a specific cashpool  
+**Description:** Retrieves information for a specific cashpool
+**Restriction:** Only Admins can view  
 **Headers:**
 ```http
 Authorization: Bearer <access_token>
