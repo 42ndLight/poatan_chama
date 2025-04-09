@@ -37,7 +37,8 @@ Authorization: Bearer <access_token>
 
 ### 4. Confirm Contribution
 **Endpoint:** `PATCH /contributions/confirm/{contribution_id}/`  
-**Description:** Confirms a pending contribution  
+**Description:** Confirms a pending contribution
+**Restricted** User can confirm own contributions
 **Headers:**
 ```http
 Authorization: Bearer <access_token>
