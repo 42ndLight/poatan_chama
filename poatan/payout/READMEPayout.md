@@ -31,6 +31,7 @@ Authorization: Bearer <access_token>
 ### 3. Process Payout
 **Endpoint:** `PATCH /payout/{payout_id}/process/`  
 **Description:** Process a payout request (approve/reject)  
+**Restricted** Only a chama admin can confirm a payout for now 
 **Headers:**
 ```http
 Authorization: Bearer <access_token>
