@@ -106,6 +106,7 @@ Click ME :
 1. Clone the repository:
    ```sh
    git clone https://github.com/42ndLight/poatan_chama.git
+   cd poatan_chama/poatan
    ```
 2. Install dependencies:
    ```sh
