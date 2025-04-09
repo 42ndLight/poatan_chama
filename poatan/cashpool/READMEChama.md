@@ -4,7 +4,7 @@
 
 ### 1. Create New Cashpool
 **Endpoint:** `POST /cashpool/new/`  
-**Description:** Creates a new cashpool  
+**Description:** Creates a new cashpool, User that creates a Cashpool(Chama) automatically set as chama_admin
 **Headers:**
 ```http
 Authorization: Bearer <access_token>
@@ -12,8 +12,7 @@ Authorization: Bearer <access_token>
 **Request Body:**
 ```json
 {
-    "name" : "ChamaOne",
-    "chama_admin" : 7
+    "name" : "ChamaOne"
 }
 ```
 
