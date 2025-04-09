@@ -5,6 +5,7 @@
 ### 1. Create New Cashpool
 **Endpoint:** `POST /cashpool/new/`  
 **Description:** Creates a new cashpool, User that creates a Cashpool(Chama) automatically set as chama_admin
+
 **Headers:**
 ```http
 Authorization: Bearer <access_token>
