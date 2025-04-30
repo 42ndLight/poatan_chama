@@ -1,7 +1,7 @@
-# CashPool Chama Management System
+# Poatan Chama Management System
 
 ## Overview
-CashPool is a **Chama (informal savings group) management system** designed to facilitate user registration, contribution tracking, cash pool management, and hierarchical governance within a Chama. This system allows users to **register, join, and manage a Chama**, interact with contributions, and oversee payouts seamlessly.
+Poatan Chama is a **Chama (informal savings group) management system** designed to facilitate user registration, contribution tracking, cash pool management, and hierarchical governance within a Chama. This system allows users to **register, join, and manage a Chama**, interact with contributions, and oversee payouts seamlessly.
 
 ## Features
 - **User Authentication & Profile Management** (Registration, Login, Profile Updates, Password Management)
