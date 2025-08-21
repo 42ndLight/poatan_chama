@@ -37,6 +37,7 @@ class Contribution(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     confirmed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='confirmed_contributions')
     transaction_ref = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    mpesa_transaction_id = models.CharField(max_length=50, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     # Algorithm creates a random reference number for each confrimed contribution

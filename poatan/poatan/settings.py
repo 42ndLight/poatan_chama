@@ -25,8 +25,23 @@ SECRET_KEY = 'django-insecure-^e&2s92ql$wa7%7*m93=4aqyvoa1oem%di1e4qud-h7w5w$-)2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['68a7aa5767ab.ngrok-free.app',
+                '127.0.0.1',
+                'localhost',]
 
+
+from decouple import config
+
+MPESA_CONSUMER_KEY = config('MPESA_CONSUMER_KEY')
+MPESA_CONSUMER_SECRET = config('MPESA_CONSUMER_SECRET')
+MPESA_SHORTCODE = config('MPESA_SHORTCODE')  # PayBill/Till
+MPESA_PASSKEY = config('MPESA_PASSKEY')  # For STK Push
+MPESA_EXPRESS_SHORTCODE = config('MPESA_EXPRESS_SHORTCODE')
+MPESA_CALLBACK_URL = config('MPESA_CALLBACK_URL')  # e.g., https://yourdomain.com/mpesa/callback/
+MPESA_INITIATOR_USERNAME = config('INITIATOR_USERNAME')
+MPESA_INITIATOR_SECURITY_CREDENTIAL = config('INITIATOR_SECURITY_CREDENTIAL')
+MPESA_PASSKEY = config('MPESA_PASSKEY')
+MPESA_ENVIRONMENT = 'sandbox'  # Switch to 'production' later
 
 # Application definition
 
@@ -44,6 +59,7 @@ INSTALLED_APPS = [
     'payout',
     'django_filters',
     'contributions',
+    'django_daraja',
     'transactions.apps.TransactionsConfig',
 ]
 
@@ -147,3 +163,21 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

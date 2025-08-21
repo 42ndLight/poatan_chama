@@ -49,7 +49,7 @@ class LedgerService:
                     reference_id=str(contribution.id),
                     chama=contribution.chama,
                     user=contribution.user,
-                    initiated_by=contribution.confirmed_by,
+                    #initiated_by=contribution.confirmed_by,
                     description=f"Contribution from {contribution.user.username}"
                 )
         
@@ -79,7 +79,7 @@ class LedgerService:
                     reference_id=str(payout.id),
                     chama=payout.cashpool.chama,
                     user=payout.recipient,
-                    initiated_by=payout.initiated_by,
+                    #initiated_by=payout.initiated_by,
                     description=f"Payout to {payout.recipient.username}"
                 )
         

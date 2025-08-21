@@ -1,91 +1,130 @@
-from django.forms import ValidationError
-from rest_framework import generics, permissions
-from rest_framework.exceptions import PermissionDenied
-from rest_framework import status
-from cashpool.models import Chama
-from rest_framework.response import Response 
+from django.db import transaction
+from django.core.exceptions import PermissionDenied
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import serializers
-from django.shortcuts import get_object_or_404
-from .models import Contribution
-from .serializers import ContributionSerializer, ConfirmContributionSerializer
+from rest_framework.decorators import api_view, permission_classes
+from django_daraja.mpesa.core import MpesaClient
+from .models import Chama, Contribution
+from .serializers import ContributionSerializer
+from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)
 
-"""
-    View handles logic to create and list a contribution
-    Only  Authenticated users can make a contribution or list their contributions
-"""
 class ContributionListCreateView(generics.ListCreateAPIView):
     serializer_class = ContributionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
-    # Shows all Contributions specified to a chama
     def get_queryset(self):
-        queryset = Contribution.objects.all()
-        if self.kwargs.get('chama_id'):
-            queryset = queryset.filter(chama_id=self.kwargs['chama_id'])
-        return queryset.select_related('chama')
-    
-    # Ensure a Contribution is made to a specified chama
-    def perform_create(self, serializer):
+        """Return contributions for a specific Chama, optimized with select_related."""
         chama_id = self.kwargs.get('chama_id')
+        logger.debug(f"Fetching contributions for chama_id={chama_id}, user={self.request.user.username}")
         if not chama_id:
+            logger.error("Chama ID not provided in URL")
             raise serializers.ValidationError({"chama": "Chama ID is required in the URL"})
-        
+        if not Chama.objects.filter(pk=chama_id, members=self.request.user).exists():
+            logger.warning(f"User {self.request.user.username} is not a member of chama_id={chama_id}")
+            raise PermissionDenied("You are not a member of this chama")
+        queryset = Contribution.objects.filter(chama_id=chama_id).select_related('chama', 'user')
+        logger.debug(f"Queryset retrieved: {queryset.count()} contributions")
+        return queryset
+
+    def perform_create(self, serializer):
+        """Create a pending contribution and initiate MPESA STK Push."""
+        chama_id = self.kwargs.get('chama_id')
+        logger.info(f"Creating contribution for chama_id={chama_id}, user={self.request.user.username}")
         try:
             chama = Chama.objects.get(pk=chama_id)
-        except Chama.DoesNotExist: # Ensures the chama exists
+        except Chama.DoesNotExist:
+            logger.error(f"Chama not found: chama_id={chama_id}")
             raise serializers.ValidationError({"chama": "Chama not found"})
-        
-        #Ensures only a member can view Contributions
+
         if not chama.members.filter(pk=self.request.user.pk).exists():
+            logger.warning(f"User {self.request.user.username} is not a member of chama_id={chama_id}")
             raise PermissionDenied("You are not a member of this chama")
-        
-        serializer.save(user=self.request.user, chama=chama)
 
-"""View to show specific Contribution's details """
-class ContributionDetailView(generics.RetrieveAPIView):
-    serializer_class = ContributionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+        with transaction.atomic():
+            contribution = serializer.save(user=self.request.user, chama=chama, status='pending')
+            logger.info(f"Contribution saved: ID={contribution.id}, Amount={contribution.amount}, Status={contribution.status}")
 
-    def get_queryset(self):
-        return Contribution.objects.filter(user=self.request.user)
+            # Initiate MPESA STK Push
+            cl = MpesaClient()
+            phone = self.request.user.phone_no
+            amount = int(float(contribution.amount))  # Convert Decimal to int
+            account_ref = f"Chama_{chama.id}"
+            transaction_desc = f"Contribution to {chama.name}"
+            callback_url = f"{settings.MPESA_CALLBACK_URL}contributions/"
 
-"""
-    View to show when a contribution is confrimed
-    Handles:
-        Only Admins can confirm a Contribution
-        Only pending Contributions can be confirmed
-        Proper Exception Handling when confirming a Contribution
-"""
-class ConfirmContributionView(generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ConfirmContributionSerializer
-    lookup_url_kwarg = 'contribution_id'
+            logger.debug(f"Initiating STK Push: phone={phone}, amount={amount}, account_ref={account_ref}, callback_url={callback_url}")
+            try:
+                response = cl.stk_push(
+                    phone_number=phone,
+                    amount=amount,
+                    account_reference=account_ref,
+                    transaction_desc=transaction_desc,
+                    callback_url=callback_url
+                )
+                logger.debug(f"MPESA raw response: {response.__dict__}")
+            except Exception as e:
+                logger.error(f"MPESA STK Push failed: {str(e)}", exc_info=True)
+                contribution.delete()
+                return Response(
+                    {"error": f"STK Push failed: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-    def get_queryset(self):
-        return Contribution.objects.filter(user=self.request.user, status='pending')
+             # Check response attributes directly
+            response_code = getattr(response, 'response_code', None)
+            checkout_request_id = getattr(response, 'checkout_request_id', None)
+            merchant_request_id = getattr(response, 'merchant_request_id', None)
+            response_description = getattr(response, 'response_description', 'Unknown error')
 
+            if response_code == '0':
+                contribution.mpesa_transaction_id = checkout_request_id
+                contribution.save()
+                logger.info(f"STK Push initiated: Contribution ID={contribution.id}, CheckoutRequestID={checkout_request_id}, MerchantRequestID={merchant_request_id}")
+                return Response(
+                    {"message": "STK Push initiated", "contribution_id": contribution.id},
+                    status=status.HTTP_202_ACCEPTED
+                )
+            else:
+                contribution.delete()
+                logger.error(f"STK Push failed: {response_description}")
+                return Response(
+                    {"error": f"STK Push failed: {response_description}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-    def update(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = self.get_serializer(
-                instance, 
-                data={'status': 'confirmed'},
-                partial=True
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            
-            return Response({
-                "status": "success",
-                "data": serializer.data
-            }, status=status.HTTP_200_OK)
-            
-        except serializers.ValidationError as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def mpesa_contribution_callback(request):
+    """Handle MPESA callback to update contribution status."""
+    logger.info("Received MPESA callback")
+    data = request.data.get('Body', {}).get('stkCallback', {})
+    result_code = data.get('ResultCode')
+    checkout_request_id = data.get('CheckoutRequestID')
+    logger.debug(f"Callback data: ResultCode={result_code}, CheckoutRequestID={checkout_request_id}")
+
+    if not checkout_request_id:
+        logger.error("Invalid callback data: No CheckoutRequestID")
+        return Response({"error": "Invalid callback data"}, status=400)
+
+    try:
+        with transaction.atomic():
+            contribution = Contribution.objects.get(mpesa_transaction_id=checkout_request_id)
+            logger.debug(f"Found contribution: ID={contribution.id}, Amount={contribution.amount}")
+            if result_code == 0:
+                contribution.status = 'confirmed'
+                contribution.save()  # Triggers cashpool update via model's save
+                logger.info(f"Contribution confirmed: ID={contribution.id}, Amount={contribution.amount}")
+            else:
+                contribution.status = 'failed'
+                contribution.save()
+                logger.info(f"Contribution failed: ID={contribution.id}, Reason={data.get('ResultDesc')}")
+    except Contribution.DoesNotExist:
+        logger.error(f"Contribution not found for CheckoutRequestID={checkout_request_id}")
+        return Response({"error": "Contribution not found"}, status=404)
+
+    return Response({"ResultCode": 0, "ResultDesc": "Callback received"})

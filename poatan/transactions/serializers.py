@@ -7,7 +7,6 @@ from rest_framework import serializers
 class LedgerEntrySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     chama = ChamaSerializer(read_only=True)
-    initiated_by = UserSerializer(read_only=True)
 
     class Meta:
         model = LedgerEntry
@@ -15,8 +14,7 @@ class LedgerEntrySerializer(serializers.ModelSerializer):
         read_ony_fields = [
             'id',
             'transaction_id',
-            'timestamp',
-            'initiated_by'
+            'timestamp'
         ]
 
     def validate(self, data):

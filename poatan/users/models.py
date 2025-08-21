@@ -15,7 +15,7 @@ class User(AbstractUser):
         ('Chairman', 'Chairman'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='contributor')
-    phone_no = models.CharField(max_length=20, blank=True, null=True)
+    phone_no = models.CharField(max_length=15,default= "0720000000", unique=True, help_text="e.g., 254712345678")
     groups = models.ManyToManyField(
         Group,
         verbose_name='groups',
